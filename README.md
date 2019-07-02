@@ -1,2 +1,2 @@
 # compat-id
-Compound communication pattern identifier for exascale distributed systems.
+Communication pattern identifier for exascale distributed systems.
