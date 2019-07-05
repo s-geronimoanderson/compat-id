@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 
+def tuple_to_scalar(grid_edge_size, coordinates):
+    """Return the appropriate conversion based on coordinates' cardinality."""
+    cardinality = len(coordinates)
+    if cardinality == 1:
+        return coordinates[0]
+    elif cardinality == 2:
+        return xy2d(grid_edge_size, coordinates)
+    elif cardinality == 3:
+        return xyz2d(grid_edge_size, coordinates)
+    return result
+
 def test_xyz(min_size=1, max_size=None):
     """Exhaustively test xyz2d and d2xyz for size n."""
     if min_size < 1:

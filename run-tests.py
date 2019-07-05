@@ -41,8 +41,6 @@ from timeit import default_timer as timer
 
 from hilbert import d2xyz
 
-
-
 def test_generator(canonical_pattern_order=True,
                    classify_root=True,
                    classify_scale=False,
@@ -57,7 +55,7 @@ def test_generator(canonical_pattern_order=True,
     """Generate and return test data."""
     start = timer()
     test_data = load_matrices(
-        canonical_pattern_order=True,
+        canonical_pattern_order=canonical_pattern_order,
         classify_root=classify_root,
         classify_scale=classify_scale,
         operation_count=operation_count,

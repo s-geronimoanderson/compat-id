@@ -77,6 +77,56 @@ class Pattern(IntEnum):
 
 import hilbert
 
+
+def generate_labeled_matrices(
+        classify_root=False,
+        classify_scale=False,
+        patterns=None,
+        process_count=28,
+        sample_count=10000):
+    """Return a matrix list and its corresponding label list."""
+    if patterns is None:
+        patterns = [Pattern.BROADCAST, Pattern.REDUCTION]
+
+    matrices = []
+    labels = []
+
+    for sample_index in range(sample_count):
+        current = Network(size=process_count)
+
+        chosen_patterns = []
+        for _ in len(patterns):
+            chosen_patterns.append(random.choice(patterns))
+        chosen_patterns.sort()
+
+        coordinates = []
+        for pattern in chosen_patterns:
+            root = random.randrange(process_count)
+            if classify_root:
+                coordinates.append(root)
+            scale = 2**random.randrange(scale_bit_min, scale_bit_max)
+
+            if pattern == Pattern.BROADCAST:
+                current = current.broadcast(root=root, scale=scale)
+            elif pattern == Pattern.REDUCTION:
+                current = current.reduce(root=root, scale=scale)
+
+        # Classify.
+        if patterns[0] != patterns[1]:
+            coordinates.append(1)
+        elif patterns[0] == Pattern.BROADCAST:
+            coordinates.append(0)
+        else:
+            # Necessarily, patterns[0] == patterns[1] == Pattern.REDUCTION.
+            coordinates.append(2)
+        classification = hilbert.tuple_to_scaler(process_count, coordinates)
+
+        # Done.
+        matrices.append(current)
+        labels.append(classification)
+    return {'matrices': matrices, 'labels': labels}
+
+
 def load_matrices(
         canonical_pattern_order=False,
         classify_root=False,
@@ -148,7 +198,11 @@ def load_matrices(
                                                         scale)
             classification = "{}{})".format(classification,
                                             parameterization)
+
+        # Reshape.
         data[sample_index, :] = current.reshape(feature_count)
+
+        # Classify.
         if enumerated_label:
             classification = simple_label_mapping.get(
                 classification,
@@ -166,6 +220,23 @@ def load_matrices(
             classification = hilbert.xyz2d(process_count, coordinates)
         target.append(classification)
     return {'data': data, 'target': target}
+
+def load_data(process_count=28,
+              training_count=6,
+              testing_count=1):
+    """Keras-style data loader."""
+    train_data = generate_labeled_matrices(
+        process_count=process_count,
+        sample_count=training_count)
+    train_images = train_data['matrices']
+    train_labels = train_data['labels']
+
+    test_data = generate_labeled_matrices(
+        process_count=process_count,
+        sample_count=testing_count)
+    test_images = test_data['matrices']
+    test_labels = test_data['labels']
+    return (train_images, train_labels), (test_images, test_labels)
 
 
 def load_bcast_vs_reduce(
