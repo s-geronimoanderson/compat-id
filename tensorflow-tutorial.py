@@ -23,6 +23,7 @@ class DatumSet(IntEnum):
     COMPAT_MTRX = 2
 
 datum_set = DatumSet.COMPAT_MTRX
+#datum_set = DatumSet.FASHION_MNIST
 
 if datum_set is DatumSet.FASHION_MNIST:
     # The tutorial datum set.
@@ -37,10 +38,12 @@ elif datum_set is DatumSet.COMPAT_MTRX:
     # The initial experimental communication pattern matrix.
     import generator
     load_data = generator.load_data
-    (train_images, train_labels), (test_images, test_labels) = load_data()
+    (train_images, train_labels), (test_images, test_labels) = load_data(
+        testing_count=60000,
+        training_count=10000)
 
     # Store class names for plotting images:
-    class_names = ['bcast', 'red', 'bcast+red']
+    class_names = ['bcast', 'bcast+red', 'red']
 
 elif datum_set is DatumSet.FASHION_ACG:
     # The ORNL datum set.
@@ -60,12 +63,16 @@ print(train_labels)
 print(test_images.shape)
 print(len(test_labels))
 
+show_plot = True
+def nop():
+    pass
+
 # Preprocess (process?) the data:
 plt.figure()
 plt.imshow(train_images[0])
 plt.colorbar()
 plt.grid(False)
-#plt.show()
+plt.show() if show_plot else nop()
 
 # The pixel values are within [0, 255], so we scale to [0, 1]:
 train_images = train_images / 255.0
@@ -73,14 +80,14 @@ test_images = test_images / 255.0
 
 # Verify the data is in the correct format:
 plt.figure(figsize=(10,10))
-for i in range(25):
+for i in range(25 if len(train_images) >= 25 else len(train_images)):
     plt.subplot(5,5,i+1)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
     plt.imshow(train_images[i], cmap=plt.cm.binary)
     plt.xlabel(class_names[train_labels[i]])
-#plt.show()
+plt.show() if show_plot else nop()
 
 # Build the model, starting with the layers:
 model = keras.Sequential([
@@ -156,7 +163,7 @@ plt.subplot(1,2,1)
 plot_image(i, predictions, test_labels, test_images)
 plt.subplot(1,2,2)
 plot_value_array(i, predictions,  test_labels)
-#plt.show()
+plt.show() if show_plot else nop()
 
 i = 12
 plt.figure(figsize=(6,3))
@@ -164,7 +171,7 @@ plt.subplot(1,2,1)
 plot_image(i, predictions, test_labels, test_images)
 plt.subplot(1,2,2)
 plot_value_array(i, predictions,  test_labels)
-#plt.show()
+plt.show() if show_plot else nop()
 
 # Plot the first X test images, their predicted label, and the true label
 # Color correct predictions in blue, incorrect predictions in red
@@ -177,7 +184,7 @@ for i in range(num_images):
   plot_image(i, predictions, test_labels, test_images)
   plt.subplot(num_rows, 2*num_cols, 2*i+2)
   plot_value_array(i, predictions, test_labels)
-#plt.show()
+plt.show() if show_plot else nop()
 
 # Grab an image from the test dataset
 img = test_images[0]
@@ -192,7 +199,7 @@ predictions_single = model.predict(img)
 print(predictions_single)
 plot_value_array(0, predictions_single, test_labels)
 plt.xticks(range(10), class_names, rotation=45)
-#plt.show()
+plt.show() if show_plot else nop()
 
 # Grab predictions:
 prediction_result = np.argmax(predictions_single[0])

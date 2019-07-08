@@ -60,6 +60,9 @@ class Network:
     def is_valid_process(self, process):
         return (0 <= process and process <= self.size)
 
+    def as_numpy_array(self):
+        return self.network
+
 
 # Communication patterns.
 
@@ -83,19 +86,22 @@ def generate_labeled_matrices(
         classify_scale=False,
         patterns=None,
         process_count=28,
+        scale_bit_min=4,
+        scale_bit_max=9,
         sample_count=10000):
     """Return a matrix list and its corresponding label list."""
     if patterns is None:
         patterns = [Pattern.BROADCAST, Pattern.REDUCTION]
 
-    matrices = []
-    labels = []
+    matrices = np.empty(shape=(sample_count, process_count, process_count))
+
+    labels = np.empty(shape=sample_count, dtype=np.int64)
 
     for sample_index in range(sample_count):
         current = Network(size=process_count)
 
         chosen_patterns = []
-        for _ in len(patterns):
+        for _ in range(len(patterns)):
             chosen_patterns.append(random.choice(patterns))
         chosen_patterns.sort()
 
@@ -112,18 +118,20 @@ def generate_labeled_matrices(
                 current = current.reduce(root=root, scale=scale)
 
         # Classify.
-        if patterns[0] != patterns[1]:
+        if chosen_patterns[0] is not chosen_patterns[1]:
+            # Here, the patterns are different (one of each).
             coordinates.append(1)
-        elif patterns[0] == Pattern.BROADCAST:
+        elif chosen_patterns[0] is Pattern.BROADCAST:
+            # Here, patterns[0] is patterns[1] is Pattern.BROADCAST.
             coordinates.append(0)
         else:
-            # Necessarily, patterns[0] == patterns[1] == Pattern.REDUCTION.
+            # Here, patterns[0] is patterns[1] is Pattern.REDUCTION.
             coordinates.append(2)
-        classification = hilbert.tuple_to_scaler(process_count, coordinates)
+        classification = hilbert.tuple_to_scalar(process_count, coordinates)
 
         # Done.
-        matrices.append(current)
-        labels.append(classification)
+        matrices[sample_index] = current.as_numpy_array()
+        labels[sample_index] = classification
     return {'matrices': matrices, 'labels': labels}
 
 
@@ -222,8 +230,8 @@ def load_matrices(
     return {'data': data, 'target': target}
 
 def load_data(process_count=28,
-              training_count=6,
-              testing_count=1):
+              training_count=300,
+              testing_count=50):
     """Keras-style data loader."""
     train_data = generate_labeled_matrices(
         process_count=process_count,
