@@ -132,7 +132,11 @@ def generate_labeled_matrices(
         # Done.
         matrices[sample_index] = current.as_numpy_array()
         labels[sample_index] = classification
-    return {'matrices': matrices, 'labels': labels}
+    classes = hilbert.generate_class_names(
+        process_count,
+        classify_root,
+        classify_scale)
+    return {'matrices': matrices, 'labels': labels, 'classes': classes}
 
 
 def load_matrices(
@@ -229,22 +233,30 @@ def load_matrices(
         target.append(classification)
     return {'data': data, 'target': target}
 
-def load_data(process_count=28,
-              training_count=300,
-              testing_count=50):
+def load_data(
+        process_count=28,
+        scale_bit_min=4,
+        scale_bit_max=9,
+        testing_count=50,
+        training_count=300):
     """Keras-style data loader."""
     train_data = generate_labeled_matrices(
         process_count=process_count,
         sample_count=training_count)
-    train_images = train_data['matrices']
+    train_matrices = train_data['matrices']
     train_labels = train_data['labels']
+
+    # The class names are deterministic, so getting them from the training run
+    # should be sufficient.
+    class_names = train_data['classes']
 
     test_data = generate_labeled_matrices(
         process_count=process_count,
         sample_count=testing_count)
-    test_images = test_data['matrices']
     test_labels = test_data['labels']
-    return (train_images, train_labels), (test_images, test_labels)
+    test_matrices = test_data['matrices']
+
+    return (train_matrices, train_labels), (test_matrices, test_labels), class_names
 
 
 def load_bcast_vs_reduce(

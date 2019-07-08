@@ -1,5 +1,29 @@
 #!/usr/bin/env python
 
+def generate_class_names(
+        process_count,
+        classify_root=False,
+        classify_scale=False):
+    """Return a list containing class names according to the Hilbert curve."""
+    pattern_name_combinations = [
+        "2b {}:{}",
+        "b+r {}:{}",
+        "2r {}:{}"]
+    class_names = [0 for _ in range(process_count**2 * 3)]
+    for index in range(3):
+        for first_root in range(process_count):
+            for second_root in range(process_count):
+                coordinates = (first_root, second_root, index)
+                classification = tuple_to_scalar(
+                    process_count,
+                    coordinates)
+                class_name = pattern_name_combinations[index].format(
+                    first_root,
+                    second_root)
+                class_names[classification] = class_name
+                #print(classification, coordinates, class_name)
+    return class_names
+
 def tuple_to_scalar(grid_edge_size, coordinates):
     """Return the appropriate conversion based on coordinates' cardinality."""
     cardinality = len(coordinates)
