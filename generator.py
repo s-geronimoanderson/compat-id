@@ -112,6 +112,9 @@ def generate_labeled_matrices(
                 coordinates.append(root)
             scale = 2**random.randrange(scale_bit_min, scale_bit_max)
 
+            if scale > 512:
+                print('+', end='')
+
             if pattern == Pattern.BROADCAST:
                 current = current.broadcast(root=root, scale=scale)
             elif pattern == Pattern.REDUCTION:

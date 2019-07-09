@@ -1,9 +1,18 @@
 #!/usr/bin/env python
 
+def go():
+    """The main event."""
+    show_names = True
+    generate_class_names(
+        process_count=2**4,
+        classify_root=True,
+        show_names=True)
+
 def generate_class_names(
         process_count,
         classify_root=False,
-        classify_scale=False):
+        classify_scale=False,
+        show_names=False):
     """Return a list containing class names according to the Hilbert curve."""
     pattern_name_combinations = [
         "2b {}:{}",
@@ -21,7 +30,8 @@ def generate_class_names(
                     first_root,
                     second_root)
                 class_names[classification] = class_name
-                #print(classification, coordinates, class_name)
+                if show_names:
+                    print(classification, coordinates, class_name)
     return class_names
 
 def tuple_to_scalar(grid_edge_size, coordinates):
@@ -140,3 +150,8 @@ def rot(n, x, y, rx, ry):
         y = t;
 
     return x, y
+
+if __name__ == "__main__":
+    go()
+
+# EOF
