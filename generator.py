@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import glob
 import numpy as np
 import os
 import random
@@ -7,6 +8,8 @@ import random
 from enum import IntEnum
 from network import Network
 from scipy import io
+
+import hilbert
 
 
 # Communication patterns.
@@ -21,12 +24,11 @@ class Pattern(IntEnum):
 
 # Generator functions.
 
-import hilbert
-
-
 def generate_labeled_matrices(
+        augmented=False,
         classify_root=False,
         classify_scale=False,
+        output_directory=None,
         patterns=None,
         process_count=28,
         scale_bit_min=4,
@@ -39,7 +41,7 @@ def generate_labeled_matrices(
         patterns = [Pattern.BROADCAST, Pattern.REDUCTION]
 
     for sample_index in range(sample_count):
-        current = Network(augmented=False, size=process_count)
+        current = Network(augmented=augmented, size=process_count)
 
         chosen_patterns = []
         for _ in range(len(patterns)):
@@ -52,9 +54,6 @@ def generate_labeled_matrices(
             if classify_root:
                 coordinates.append(root)
             scale = 2**random.randrange(scale_bit_min, scale_bit_max)
-
-            if scale > 512:
-                print('+', end='')
 
             if pattern == Pattern.BROADCAST:
                 current = current.broadcast(root=root, scale=scale)
@@ -74,30 +73,30 @@ def generate_labeled_matrices(
         classification = hilbert.tuple_to_scalar(process_count, coordinates)
 
         # Done.
-        labels[sample_index] = classification
-        matrices[sample_index] = current.as_numpy_array()
-        """
-        # Write out.
-        fqfn = os.path.join(output_directory, f'{sample_index}-{classification}.mtx')
-        io.mmwrite(
-            fqfn,
-            current.tolil(),
-            comment=f'{classification}')
-        """
+        if output_directory is None:
+            labels[sample_index] = classification
+            matrices[sample_index] = current.get_matrix()
+        else:
+            file_spec = f'{sample_index}-*.mtx'
+            file_matches = glob.glob(os.path.join(output_directory, file_spec))
+            if file_matches:
+                print("File matches: ", file_matches)
+            else:
+                # Write out.
+                file_name = f'{sample_index}-{classification}'
+                current.save(
+                    os.path.join(output_directory,
+                                 f'{file_name}.mtx'),
+                    comment=f'{file_name}')
     return labels, matrices
 
 
 def load_matrices(
-        classify_root=False,
-        classify_scale=False,
-        sample_count=1,
-        process_count=2):
+        input_directory,
+        augmented=False,
+        process_count=512,
+        sample_count=512):
     """
-    matrices = np.empty(
-        shape=(sample_count, process_count, process_count),
-        dtype=object)
-    labels = np.empty(shape=sample_count, dtype=np.int64)
-
     if not os.listdir(matrix_directory):
         print("Matrix directory is empty.")
         #os.makedirs(matrix_directory)
@@ -107,27 +106,27 @@ def load_matrices(
             process_count=process_count,
             output_directory=matrix_directory,
             sample_count=training_count)
+    """
+    labels = np.empty(shape=sample_count, dtype=np.int64)
+    matrices = np.empty(shape=(sample_count, process_count, process_count))
 
-    for f in os.listdir(matrix_directory):
+    print("Loading matrices", end='')
+    for f in os.listdir(input_directory):
+        print('.', end='')
         # Get file contents as matrix.
-        fqfn = os.path.join(matrix_directory, f)
-        matrix = mmread(fqfn)
+        fqfn = os.path.join(input_directory, f)
+        current = Network(augmented=augmented, size=process_count)
+        current.load(fqfn)
+        matrix = current.get_matrix()
 
         # Get index and classification from file name.
-        f_sans_ext = os.path.splitext(f)[0]
-        sample_index = int(f_sans_ext.split('-')[0])
-        classification = int(f_sans_ext.split('-')[1])
-        print(f, f_sans_ext, sample_index, classification)
-        matrices[sample_index] = matrix
-        labels[sample_index] = classification
-    """
-
-    # Eventually, this function will load from disk.
-    return generate_labeled_matrices(
-        classify_root=classify_root,
-        classify_scale=classify_scale,
-        process_count=process_count,
-        sample_count=sample_count)
+        f_name, f_name_ext = os.path.splitext(f)
+        if f_name_ext == '.mtx':
+            index, label = [int(x) for x in f_name.split('-')]
+            matrices[index] = matrix
+            labels[index] = label
+    print(" loaded!")
+    return labels, matrices
 
 
 def load_data(
@@ -139,17 +138,31 @@ def load_data(
         testing_count=50,
         training_count=150):
     """Load matrices and class names."""
-    train_labels, train_matrices = load_matrices(
+    sample_count = testing_count + training_count
+    labels, matrices = generate_labeled_matrices(
+        classify_root=classify_root,
+        classify_scale=classify_scale,
+        output_directory='./matrices',
         process_count=process_count,
-        sample_count=training_count)
+        sample_count=sample_count,
+        scale_bit_min=scale_bit_min,
+        scale_bit_max=scale_bit_max)
 
-    test_labels, test_matrices = load_matrices(
+    labels, matrices = load_matrices(
+        './matrices',
         process_count=process_count,
-        sample_count=testing_count)
+        sample_count=sample_count)
 
-    class_names = hilbert.generate_class_names(
-        process_count=process_count)
-    return (train_matrices, train_labels), (test_matrices, test_labels), class_names
+    training_labels = labels[:training_count]
+    testing_labels = labels[training_count:]
+
+    training_matrices = matrices[:training_count]
+    testing_matrices = matrices[training_count:]
+
+    class_names = hilbert.generate_class_names(process_count=process_count)
+    return ((training_matrices, training_labels),
+            (testing_matrices, testing_labels),
+            class_names)
 
 
 def load_bcast_vs_reduce(
@@ -205,4 +218,10 @@ def load_bcast_vs_reduce(
 # Run-as-script idiom.
 
 if __name__ == "__main__":
-    pass
+    generate_labeled_matrices(
+        augmented=False,
+        output_directory='./matrices',
+        process_count=2**6,
+        sample_count=2**6)
+
+# Fin.

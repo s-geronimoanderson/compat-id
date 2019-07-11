@@ -31,12 +31,15 @@ class Mode(IntEnum):
 mode = Mode.DEMO
 #mode = Mode.TEST
 
-# Show plot?
-show_plot = False
-#show_plot = True
+# Show plots?
+#show_plots = False
+show_plots = True
 
 process_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+process_counts = [6]
+sample_counts = [6]
 
 def go():
     """Run the main event."""
@@ -48,10 +51,6 @@ def go():
             run_tutorial(
                 process_count=2**process_count,
                 sample_count=2**sample_count)
-
-
-def nop():
-    pass
 
 
 def run_tutorial(process_count=256, sample_count=512): 
@@ -101,6 +100,22 @@ def run_tutorial(process_count=256, sample_count=512):
                 scale_bit_max=scale_bit_max,
                 testing_count=testing_count,
                 training_count=training_count)
+
+            """Non-working sparse tensor attempt.
+            temp_images = [tf.SparseTensorValue(
+                indices=np.array([m.rows, m.cols]).T,
+                values=m.data,
+                dense_shape=m.shape)
+                for m in train_images]
+            train_images = temp_images
+
+            temp_labels = [tf.SparseTensorValue(
+                indices=np.array([m.rows, m.cols]).T,
+                values=m.data,
+                dense_shape=m.shape)
+                for m in train_labels]
+            train_labels = temp_labels
+            """
         
             # Effective image dimension.
             n = process_count
@@ -123,13 +138,14 @@ def run_tutorial(process_count=256, sample_count=512):
         print(train_labels)
         print(test_images.shape)
         print(len(test_labels))
-        
-        # Preprocess (process?) the data:
-        plt.figure()
-        plt.imshow(train_images[0])
-        plt.colorbar()
-        plt.grid(False)
-        plt.show() if show_plot else nop()
+
+        if show_plots:        
+            # Preprocess (process?) the data:
+            plt.figure()
+            plt.imshow(train_images[0])
+            plt.colorbar()
+            plt.grid(False)
+            plt.show()
         
         # The pixel values are within [0, 255], so we scale to [0, 1]:
         max_value = max(np.amax(train_images), np.amax(test_images))
@@ -137,16 +153,17 @@ def run_tutorial(process_count=256, sample_count=512):
         train_images = train_images / max_value
         test_images = test_images / max_value
         
-        # Verify the data is in the correct format:
-        plt.figure(figsize=(10,10))
-        for i in range(25 if len(train_images) >= 25 else len(train_images)):
-            plt.subplot(5,5,i+1)
-            plt.xticks([])
-            plt.yticks([])
-            plt.grid(False)
-            plt.imshow(train_images[i], cmap=plt.cm.binary)
-            plt.xlabel(class_names[train_labels[i]])
-        plt.show() if show_plot else nop()
+        if show_plots:        
+            # Verify the data is in the correct format:
+            plt.figure(figsize=(10,10))
+            for i in range(25 if len(train_images) >= 25 else len(train_images)):
+                plt.subplot(5,5,i+1)
+                plt.xticks([])
+                plt.yticks([])
+                plt.grid(False)
+                plt.imshow(train_images[i], cmap=plt.cm.binary)
+                plt.xlabel(class_names[train_labels[i]])
+            plt.show()
         
         # Build the model, starting with the layers:
         model = keras.Sequential([
@@ -186,67 +203,73 @@ def run_tutorial(process_count=256, sample_count=512):
         print(np.argmax(predictions[0]))
         print(test_labels[0])
         
-        # Helper functions for graphing the full predictions set:
-        def plot_image(i, predictions_array, true_label, img):
-          predictions_array, true_label, img = predictions_array[i], true_label[i], img[i]
-          plt.grid(False)
-          plt.xticks([])
-          plt.yticks([])
-          
-          plt.imshow(img, cmap=plt.cm.binary)
-          
-          predicted_label = np.argmax(predictions_array)
-          if predicted_label == true_label:
-            color = 'blue'
-          else:
-            color = 'red'
-          
-          plt.xlabel("{} {:2.0f}% ({})".format(class_names[predicted_label],
-                                        100*np.max(predictions_array),
-                                        class_names[true_label]),
-                                        color=color)
-        
-        def plot_value_array(i, predictions_array, true_label):
-          predictions_array, true_label = predictions_array[i], true_label[i]
-          plt.grid(False)
-          plt.xticks([])
-          plt.yticks([])
-          thisplot = plt.bar(range(class_count), predictions_array, color="#777777")
-          plt.ylim([0, 1])
-          predicted_label = np.argmax(predictions_array)
-          
-          thisplot[predicted_label].set_color('red')
-          thisplot[true_label].set_color('blue')
-        
-        # Look at the 0th image, predictions, and prediction array:
-        i = 0
-        plt.figure(figsize=(6,3))
-        plt.subplot(1,2,1)
-        plot_image(i, predictions, test_labels, test_images)
-        plt.subplot(1,2,2)
-        plot_value_array(i, predictions,  test_labels)
-        plt.show() if show_plot else nop()
-        
-        i = 12
-        plt.figure(figsize=(6,3))
-        plt.subplot(1,2,1)
-        plot_image(i, predictions, test_labels, test_images)
-        plt.subplot(1,2,2)
-        plot_value_array(i, predictions,  test_labels)
-        plt.show() if show_plot else nop()
-        
-        # Plot the first X test images, their predicted label, and the true label
-        # Color correct predictions in blue, incorrect predictions in red
-        num_rows = 5
-        num_cols = 3
-        num_images = num_rows*num_cols
-        plt.figure(figsize=(2*2*num_cols, 2*num_rows))
-        for i in range(num_images):
-          plt.subplot(num_rows, 2*num_cols, 2*i+1)
-          plot_image(i, predictions, test_labels, test_images)
-          plt.subplot(num_rows, 2*num_cols, 2*i+2)
-          plot_value_array(i, predictions, test_labels)
-        plt.show() if show_plot else nop()
+        if show_plots:        
+            # Helper functions for graphing the full predictions set:
+            def plot_image(i, predictions_array, true_label, img):
+                predictions_array, true_label, img = predictions_array[i], true_label[i], img[i]
+                plt.grid(False)
+                plt.xticks([])
+                plt.yticks([])
+                
+                plt.imshow(img, cmap=plt.cm.binary)
+                
+                predicted_label = np.argmax(predictions_array)
+                if predicted_label == true_label:
+                    color = 'blue'
+                else:
+                    color = 'red'
+                
+                plt.xlabel("{} {:2.0f}% ({})".format(
+                    class_names[predicted_label],
+                    100*np.max(predictions_array),
+                    class_names[true_label]),
+                    color=color)
+            
+            def plot_value_array(i, predictions_array, true_label):
+              predictions_array, true_label = predictions_array[i], true_label[i]
+              plt.grid(False)
+              plt.xticks([])
+              plt.yticks([])
+              thisplot = plt.bar(
+                  range(class_count),
+                  predictions_array,
+                  color="#777777")
+              plt.ylim([0, 1])
+              predicted_label = np.argmax(predictions_array)
+              
+              thisplot[predicted_label].set_color('red')
+              thisplot[true_label].set_color('blue')
+
+        if show_plots:
+            # Look at the 0th image, predictions, and prediction array:
+            i = 0
+            plt.figure(figsize=(6,3))
+            plt.subplot(1,2,1)
+            plot_image(i, predictions, test_labels, test_images)
+            plt.subplot(1,2,2)
+            plot_value_array(i, predictions,  test_labels)
+            plt.show()
+            
+            i = 12
+            plt.figure(figsize=(6,3))
+            plt.subplot(1,2,1)
+            plot_image(i, predictions, test_labels, test_images)
+            plt.subplot(1,2,2)
+            plot_value_array(i, predictions,  test_labels)
+            plt.show()
+            
+            # Plot the first X test images, their predicted label, and the true label
+            # Color correct predictions in blue, incorrect predictions in red
+            num_rows = 5
+            num_cols = 3
+            num_images = num_rows*num_cols
+            plt.figure(figsize=(2*2*num_cols, 2*num_rows))
+            for i in range(num_images):
+                plt.subplot(num_rows, 2*num_cols, 2*i+1)
+                plot_image(i, predictions, test_labels, test_images)
+                plt.subplot(num_rows, 2*num_cols, 2*i+2)
+                plot_value_array(i, predictions, test_labels)
+            plt.show()
         
         # Grab an image from the test dataset
         img = test_images[0]
@@ -259,9 +282,10 @@ def run_tutorial(process_count=256, sample_count=512):
         # Predict the image:
         predictions_single = model.predict(img)
         print(predictions_single)
-        plot_value_array(0, predictions_single, test_labels)
-        plt.xticks(range(class_count), class_names, rotation=45)
-        plt.show() if show_plot else nop()
+        if show_plots:
+            plot_value_array(0, predictions_single, test_labels)
+            plt.xticks(range(class_count), class_names, rotation=45)
+            plt.show()
         
         # Grab predictions:
         prediction_result = np.argmax(predictions_single[0])
