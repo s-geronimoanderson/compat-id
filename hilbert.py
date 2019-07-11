@@ -4,34 +4,40 @@ def go():
     """The main event."""
     show_names = True
     generate_class_names(
-        process_count=2**4,
-        classify_root=True,
+        process_count=2**1,
+        classify_root=False,
         show_names=True)
 
 def generate_class_names(
-        process_count,
         classify_root=False,
         classify_scale=False,
+        process_count=2**9,
         show_names=False):
     """Return a list containing class names according to the Hilbert curve."""
-    pattern_name_combinations = [
-        "2b {}:{}",
-        "b+r {}:{}",
-        "2r {}:{}"]
-    class_names = [0 for _ in range(process_count**2 * 3)]
-    for index in range(3):
-        for first_root in range(process_count):
-            for second_root in range(process_count):
-                coordinates = (first_root, second_root, index)
-                classification = tuple_to_scalar(
-                    process_count,
-                    coordinates)
-                class_name = pattern_name_combinations[index].format(
-                    first_root,
-                    second_root)
-                class_names[classification] = class_name
-                if show_names:
-                    print(classification, coordinates, class_name)
+    class_names = []
+    pattern_names = ["2b", "b+r", "2r"]
+
+    if classify_root:
+        class_names = [0 for _ in range(process_count**2 * 3)]
+        for index in range(3):
+            for first_root in range(process_count):
+                for second_root in range(process_count):
+                    coordinates = (first_root, second_root, index)
+                    classification = tuple_to_scalar(
+                        process_count,
+                        coordinates)
+                    class_name = "{name} {first}:{second}".format(
+                        name=pattern_names[index],
+                        first=first_root,
+                        second=second_root)
+                    class_names[classification] = class_name
+                    if show_names:
+                        print(classification, coordinates, class_name)
+    else:
+        # Basic.
+        class_names = pattern_names
+        if show_names:
+            print(class_names)
     return class_names
 
 def tuple_to_scalar(grid_edge_size, coordinates):
@@ -151,7 +157,9 @@ def rot(n, x, y, rx, ry):
 
     return x, y
 
+
 if __name__ == "__main__":
     go()
+
 
 # EOF

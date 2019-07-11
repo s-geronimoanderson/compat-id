@@ -33,8 +33,9 @@ mode = Mode.DEMO
 
 # Show plot?
 show_plot = False
+#show_plot = True
 
-process_counts = [10, 11, 12, 13, 14, 15, 16, 17]
+process_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
 def go():
@@ -80,11 +81,9 @@ def run_tutorial(process_count=256, sample_count=512):
     
             # Image dimension.
             n = 28
+            process_count = n
         
         elif datum_set is DatumSet.COMPAT_MTRX:
-            #process_count = 2**11
-            #sample_count = 2**10
-    
             # Just to match earlier tests.
             scale_bit_min = 4
             scale_bit_max = 14
@@ -102,9 +101,6 @@ def run_tutorial(process_count=256, sample_count=512):
                 scale_bit_max=scale_bit_max,
                 testing_count=testing_count,
                 training_count=training_count)
-        
-            # Store class names for plotting images:
-            class_names = ['bcast', 'bcast+red', 'red']
         
             # Effective image dimension.
             n = process_count
