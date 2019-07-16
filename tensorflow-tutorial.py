@@ -35,11 +35,17 @@ mode = Mode.DEMO
 #show_plots = False
 show_plots = True
 
+# Augmented?
+augmented = True
+#augmented = False
+
 process_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
-process_counts = [6]
-sample_counts = [6]
+communicator_count = 1
+
+process_counts = [9]
+sample_counts = [9]
 
 def go():
     """Run the main event."""
@@ -67,7 +73,6 @@ def run_tutorial(process_count=256, sample_count=512):
         class_names = ['bcast', 'bcast+red', 'red']
     elif mode is Mode.DEMO:
         print (tf.__version__)
-        
     
         if datum_set is DatumSet.FASHION_MNIST:
             # The tutorial datum set.
@@ -95,6 +100,7 @@ def run_tutorial(process_count=256, sample_count=512):
             import generator
             load_data = generator.load_data
             (train_images, train_labels), (test_images, test_labels), class_names = load_data(
+                communicator_count=communicator_count,
                 process_count=process_count,
                 scale_bit_min=scale_bit_min,
                 scale_bit_max=scale_bit_max,
@@ -118,7 +124,7 @@ def run_tutorial(process_count=256, sample_count=512):
             """
         
             # Effective image dimension.
-            n = process_count
+            n = communicator_count + process_count
     
         elif datum_set is DatumSet.FASHION_ACG:
             # The ORNL datum set.
@@ -167,7 +173,7 @@ def run_tutorial(process_count=256, sample_count=512):
         
         # Build the model, starting with the layers:
         model = keras.Sequential([
-            keras.layers.Flatten(input_shape=(process_count, process_count)),
+            keras.layers.Flatten(input_shape=(n, n)),
         
             # 128 nodes (neurons).
             keras.layers.Dense(128, activation=tf.nn.relu),
@@ -191,7 +197,7 @@ def run_tutorial(process_count=256, sample_count=512):
         print('Test data accuracy:', test_acc)
 
         with open(file='resultor', mode='at+') as f:
-            read_data = f.write(f'{process_count},{sample_count},{test_acc}\n')
+            read_data = f.write(f'{n},{sample_count},{test_acc}\n')
         
         # Predict:
         predictions = model.predict(test_images)

@@ -6,15 +6,22 @@ from scipy.sparse import lil_matrix
 
 class Network:
     """An abstract network class."""
-    def __init__(self, augmented=False, size=0):
-        """Size is the process count."""
-        self.size = size
+    def __init__(self,
+            augmented=False,
+            communicator_count=0,
+            process_count=0):
+        """Size is the process count plus the communicator count."""
+        self.communicator_count = communicator_count
+        self.process_count = process_count
+        self.size = size = communicator_count + process_count
         if augmented:
+            # TODO: Can I take out this case, now that self.network is an
+            # nparray again?
             self.augmented = True
             from AChax.ACGMatrix import ACGMatrix
             self.network = ACGMatrix(nranks=size,
                                      # TODO: Do this without density.
-                                     dense=True)
+                                     dense=True).get_matrix()
         else:
             self.augmented = False
             #self.network = lil_matrix((size, size))
@@ -34,7 +41,8 @@ class Network:
             self.network[source, destination] += payload
 
     def get_matrix(self):
-        if self.augmented:
+        if False:
+        #if self.augmented:
             matrix = self.network.get_matrix()
         else:
             matrix = self.network
@@ -45,9 +53,10 @@ class Network:
         if self.augmented:
             from AChax.Broadcast import Broadcast
             actor = Broadcast()
-            self.network = actor.generate(
-                nprocs=self.size,
-                params={'root': root, 'scale': scale})
+            network = actor.generate(
+                nprocs=self.process_count,
+                params={'root': root, 'scale': scale}).get_matrix()
+            self.network += network
             result = self
         else:
             sources = [root]
@@ -57,14 +66,37 @@ class Network:
                                        sources=sources)
         return result
     
+    def nn2d(self, dimensions, periodic, scale):
+        """Two-dimensional, five-point nearest-neighbor."""
+        if self.augmented:
+            from AChax.NN2D05 import NN2D05 as Actor
+            params = {'dims': dimensions,
+                      'scale': scale,
+                      'periodic': [periodic]*len(dimensions)}
+
+            actor = Actor()
+            network = actor.generate(
+                nprocs=self.process_count,
+                params=params).get_matrix()
+            coo = network.tocoo()
+            resized_network = np.zeros((self.size, self.size))
+            for row, col, value in zip(coo.row, coo.col, coo.data):
+                resized_network[row][col] += value
+            self.network += resized_network
+            result = self
+        else:
+            raise NotImplementedError
+        return result
+
     def reduce(self, root=0, scale=0):
         """Send from all processes (except the root) to the root."""
         if self.augmented:
             from AChax.Reduce import Reduce
             actor = Reduce()
-            self.network = actor.generate(
-                nprocs=self.size,
-                params={'root': root, 'scale': scale})
+            network = actor.generate(
+                nprocs=self.process_count,
+                params={'root': root, 'scale': scale}).get_matrix()
+            self.network += network
             result = self
         else:
             sources = [d for d in range(self.size) if d != root]
@@ -76,16 +108,14 @@ class Network:
 
     def load(self, file_name):
         """Load from file_name."""
-        if self.augmented:
-            self.network.load(file_name)
-        else:
-            from scipy import io
-            self.network = io.mmread(file_name)
+        from scipy import io
+        self.network = io.mmread(file_name)#.todense()
         return self
 
     def save(self, file_name, comment=None):
         """Write to file_name."""
-        if self.augmented:
+        #if self.augmented:
+        if False:
             self.network.save(file_name)
         else:
             from scipy import io
