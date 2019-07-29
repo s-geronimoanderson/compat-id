@@ -32,8 +32,8 @@ mode = Mode.DEMO
 #mode = Mode.TEST
 
 # Show plots?
-#show_plots = False
-show_plots = True
+show_plots = False
+#show_plots = True
 
 # Augmented?
 augmented = True
@@ -45,7 +45,7 @@ sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 communicator_count = 1
 
 process_counts = [9]
-sample_counts = [9]
+sample_counts = [5, 6, 7, 8, 9, 10]
 
 def go():
     """Run the main event."""

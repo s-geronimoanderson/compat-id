@@ -16,6 +16,14 @@ def generate_class_names(
     """Return a list containing class names according to the Hilbert curve."""
     class_names = []
     pattern_names = ["2b", "b+r", "2r"]
+    # This is the order the patterns could appear in the chosen patterns list.
+    pattern_names = ["bbb",
+                     "bbn", "bbr",
+                     "bnn", "bnr", "brr",
+                     "nnn",
+                     "nnr",
+                     "nrr",
+                     "rrr"]
 
     if classify_root:
         class_names = [0 for _ in range(process_count**2 * 3)]

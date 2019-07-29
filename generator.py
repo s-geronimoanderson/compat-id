@@ -15,12 +15,9 @@ import hilbert
 # Communication patterns.
 
 class Pattern(IntEnum):
-    BROADCAST = 1
+    BROADCAST = 0
+    NN2D05 = 1
     REDUCTION = 2
-    ONE_TO_MANY = 3
-    MANY_TO_ONE = 4
-    MANY_TO_MANY = 5
-    NN2D05 = 6
 
 # Generator functions.
 
@@ -75,14 +72,29 @@ def generate_labeled_matrices(
                     scale=scale)
 
         # Classify.
-        if chosen_patterns[0] is not chosen_patterns[1]:
-            # Here, the patterns are different (one of each).
-            coordinates.append(1)
-        elif chosen_patterns[0] is Pattern.BROADCAST:
-            coordinates.append(0)
+        if False: # Old version
+            if chosen_patterns[0] is not chosen_patterns[1]:
+                # Here, the patterns are different (one of each).
+                coordinates.append(1)
+            elif chosen_patterns[0] is Pattern.BROADCAST:
+                coordinates.append(0)
+            else:
+                coordinates.append(2)
+            classification = hilbert.tuple_to_scalar(size, coordinates)
         else:
-            coordinates.append(2)
-        classification = hilbert.tuple_to_scalar(size, coordinates)
+            coordinate = tuple([int(p) for p in chosen_patterns])
+            coordinate_to_classification = {
+                (0,0,0): 0, # bbb
+                (0,0,1): 1, # bbn
+                (0,0,2): 2, # bbr
+                (0,1,1): 3, # bnn
+                (0,1,2): 4, # bnr
+                (0,2,2): 5, # brr
+                (1,1,1): 6, # nnn
+                (1,1,2): 7, # nnr
+                (1,2,2): 8, # nrr
+                (2,2,2): 9} # rrr
+            classification = coordinate_to_classification[coordinate]
 
         # Done.
         if output_directory is None:
@@ -126,13 +138,18 @@ def load_matrices(
     labels = np.empty(shape=sample_count, dtype=np.int64)
     matrices = np.empty(shape=(sample_count, size, size))
 
-    print(f'Loading {process_count}-process matrices...', end='')
-    for f in os.listdir(input_directory):
+    current_count = 0
+
+    print(f'Loading {process_count}-process matrices: ', end='')
+    for index, f in enumerate(os.listdir(input_directory)):
+        current_count += 1
+        if current_count > sample_count:
+            break
         # Get index and classification from file name.
         f_name, f_name_ext = os.path.splitext(f)
         if f_name_ext == '.mtx':
             print('.', end='')
-            index, label = [int(x) for x in f_name.split('-')]
+            creation_index, label = [int(x) for x in f_name.split('-')]
 
             # Get file contents as matrix.
             fqfn = os.path.join(input_directory, f)
@@ -251,8 +268,8 @@ if __name__ == "__main__":
         augmented=True,
         communicator_count=1,
         output_directory='./matrices',
-        patterns=[Pattern.BROADCAST, Pattern.NN2D05],
-        process_count=2**11,
+        patterns=[Pattern.BROADCAST, Pattern.NN2D05, Pattern.REDUCTION],
+        process_count=2**9,
         sample_count=2**10)
 
 # Fin.
