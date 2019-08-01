@@ -31,21 +31,26 @@ class Mode(IntEnum):
 mode = Mode.DEMO
 #mode = Mode.TEST
 
-# Show plots?
-show_plots = False
-#show_plots = True
-
 # Augmented?
 augmented = True
 #augmented = False
+
+# Compressed?
+compressed = True
+#compressed = False
+
+# Show plots?
+show_plots = False
+#show_plots = True
 
 process_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
 communicator_count = 1
 
-process_counts = [9]
-sample_counts = [5, 6, 7, 8, 9, 10]
+process_counts = [5]
+sample_counts = [11, 12, 13, 14, 15]
+#sample_counts = [5]
 
 def go():
     """Run the main event."""
@@ -101,6 +106,7 @@ def run_tutorial(process_count=256, sample_count=512):
             load_data = generator.load_data
             (train_images, train_labels), (test_images, test_labels), class_names = load_data(
                 communicator_count=communicator_count,
+                compressed=compressed,
                 process_count=process_count,
                 scale_bit_min=scale_bit_min,
                 scale_bit_max=scale_bit_max,

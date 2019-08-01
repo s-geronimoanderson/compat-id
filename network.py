@@ -20,7 +20,7 @@ class Network:
             self.augmented = True
             from AChax.ACGMatrix import ACGMatrix
             self.network = ACGMatrix(nranks=size,
-                                     # TODO: Do this without density.
+                                     # TODO: Do this without density?
                                      dense=True).get_matrix()
         else:
             self.augmented = False
@@ -56,7 +56,7 @@ class Network:
             network = actor.generate(
                 nprocs=self.process_count,
                 params={'root': root, 'scale': scale}).get_matrix()
-            self.network += network
+            self.network += np.imag(network)
             result = self
         else:
             sources = [root]
@@ -65,7 +65,28 @@ class Network:
                                        payload=scale,
                                        sources=sources)
         return result
-    
+
+    def many_to_many(self, scale):
+        """A general many-to-many pattern."""
+        if self.augmented:
+            from AChax.ManyToMany import ManyToMany as Actor
+            params = {'scale': scale}
+
+            # The below may be able to be generalized.
+            actor = Actor()
+            network = actor.generate(
+                nprocs=self.process_count,
+                params=params).get_matrix()
+            coo = network.tocoo()
+            resized_network = np.zeros((self.size, self.size))
+            for row, col, value in zip(coo.row, coo.col, coo.data):
+                resized_network[row][col] += value.imag
+            self.network += resized_network
+            result = self
+        else:
+            raise NotImplementedError
+        return result
+
     def nn2d(self, dimensions, periodic, scale):
         """Two-dimensional, five-point nearest-neighbor."""
         if self.augmented:
@@ -81,7 +102,7 @@ class Network:
             coo = network.tocoo()
             resized_network = np.zeros((self.size, self.size))
             for row, col, value in zip(coo.row, coo.col, coo.data):
-                resized_network[row][col] += value
+                resized_network[row][col] += value.imag
             self.network += resized_network
             result = self
         else:
@@ -96,7 +117,7 @@ class Network:
             network = actor.generate(
                 nprocs=self.process_count,
                 params={'root': root, 'scale': scale}).get_matrix()
-            self.network += network
+            self.network += np.imag(network)
             result = self
         else:
             sources = [d for d in range(self.size) if d != root]
