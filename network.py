@@ -127,10 +127,13 @@ class Network:
                                        sources=sources)
         return result
 
-    def load(self, file_name):
+    def load(self, file_name, dense=False):
         """Load from file_name."""
         from scipy import io
-        self.network = io.mmread(file_name)#.todense()
+        if dense:
+            self.network = io.mmread(file_name).todense()
+        else:
+            self.network = io.mmread(file_name)
         return self
 
     def save(self, file_name, comment=None):
