@@ -39,18 +39,26 @@ augmented = True
 compressed = True
 #compressed = False
 
-# Show plots?
-show_plots = False
-#show_plots = True
-
-process_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-sample_counts = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-
 communicator_count = 1
 
-process_counts = [5]
-sample_counts = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-#sample_counts = [9]
+#min_process_count = 9
+#max_process_count = 9
+
+process_counts = [9]
+
+max_sample_count = 10
+
+#process_counts = range(min_process_count, max_process_count + 1) 
+
+min_sample_count = 5
+sample_counts = range(min_sample_count, max_sample_count + 1) 
+
+
+# Show plots?
+if max_sample_count != min_sample_count:
+    show_plots = False
+else:
+    show_plots = True
 
 def go():
     """Run the main event."""

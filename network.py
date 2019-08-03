@@ -48,22 +48,25 @@ class Network:
             matrix = self.network
         return matrix
 
-    def broadcast(self, root=0, scale=0):
+    def broadcast(self, root, scale):
         """Broadcast from the given root to all other processes."""
         if self.augmented:
-            from AChax.Broadcast import Broadcast
-            actor = Broadcast()
+            from AChax.Broadcast import Broadcast as Actor
+            params = {'root': root, 'scale': scale}
+
+            # TODO: Generalize the below?
+            actor = Actor()
             network = actor.generate(
                 nprocs=self.process_count,
-                params={'root': root, 'scale': scale}).get_matrix()
+                params=params).get_matrix()
             self.network += np.imag(network)
             result = self
         else:
             sources = [root]
             destinations = [d for d in range(self.size) if d != root]
-            result = self.many_to_many(destinations=destinations,
-                                       payload=scale,
-                                       sources=sources)
+            result = self.many_to_many_old(destinations=destinations,
+                                           payload=scale,
+                                           sources=sources)
         return result
 
     def many_to_many(self, scale):
@@ -77,10 +80,12 @@ class Network:
             network = actor.generate(
                 nprocs=self.process_count,
                 params=params).get_matrix()
+
             coo = network.tocoo()
             resized_network = np.zeros((self.size, self.size))
             for row, col, value in zip(coo.row, coo.col, coo.data):
                 resized_network[row][col] += value.imag
+
             self.network += resized_network
             result = self
         else:
@@ -99,32 +104,65 @@ class Network:
             network = actor.generate(
                 nprocs=self.process_count,
                 params=params).get_matrix()
+
             coo = network.tocoo()
             resized_network = np.zeros((self.size, self.size))
             for row, col, value in zip(coo.row, coo.col, coo.data):
                 resized_network[row][col] += value.imag
+
             self.network += resized_network
             result = self
         else:
             raise NotImplementedError
         return result
 
-    def reduce(self, root=0, scale=0):
-        """Send from all processes (except the root) to the root."""
+
+    def nn3d(self, dimensions, periodic, scale):
+        """Three-dimensional, seven-point nearest-neighbor."""
+        # TODO: This is actually identical to nn2d, except for the import.
         if self.augmented:
-            from AChax.Reduce import Reduce
-            actor = Reduce()
+            from AChax.NN3D07 import NN3D07 as Actor
+            params = {'dims': dimensions,
+                      'scale': scale,
+                      'periodic': [periodic]*len(dimensions)}
+
+            actor = Actor()
             network = actor.generate(
                 nprocs=self.process_count,
-                params={'root': root, 'scale': scale}).get_matrix()
+                params=params).get_matrix()
+
+            coo = network.tocoo()
+            resized_network = np.zeros((self.size, self.size))
+            for row, col, value in zip(coo.row, coo.col, coo.data):
+                resized_network[row][col] += value.imag
+
+            self.network += resized_network
+            result = self
+        else:
+            raise NotImplementedError
+        return result
+
+
+    def reduce(self, root, scale):
+        """Send from all processes (except the root) to the root."""
+        if self.augmented:
+            from AChax.Reduce import Reduce as Actor
+            params = {'root': root, 'scale': scale}
+
+
+            actor = Actor()
+            network = actor.generate(
+                nprocs=self.process_count,
+                params=params).get_matrix()
+
             self.network += np.imag(network)
             result = self
         else:
             sources = [d for d in range(self.size) if d != root]
             destinations = [root]
-            result = self.many_to_many(destinations=destinations,
-                                       payload=scale,
-                                       sources=sources)
+            result = self.many_to_many_old(destinations=destinations,
+                                           payload=scale,
+                                           sources=sources)
         return result
 
     def load(self, file_name, dense=False):
@@ -146,7 +184,7 @@ class Network:
             io.mmwrite(file_name, self.get_matrix(), comment=comment)
         return
 
-    def many_to_many(self, destinations=None, payload=0, sources=None):
+    def many_to_many_old(self, destinations=None, payload=0, sources=None):
         """Send from the given sources to the given destinations."""
         if self.augmented:
             pass

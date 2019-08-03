@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import glob
+import math
 import numpy as np
 import os
 import random
@@ -20,7 +21,16 @@ class Pattern(IntEnum):
     BROADCAST = 0
     MANY_TO_MANY = 1
     NN2D05 = 2
-    REDUCTION = 3
+    NN3D07 = 3
+    REDUCTION = 4
+
+abbreviation = {
+    Pattern.BROADCAST: 'b',
+    Pattern.MANY_TO_MANY: 'm',
+    Pattern.NN2D05: '2',
+    Pattern.NN3D07: '3',
+    Pattern.REDUCTION: 'r'}
+
 
 # Generator functions.
 
@@ -30,7 +40,7 @@ def load_label_mapping(patterns):
     mapping, names = {}, []
     for label, combo in enumerate(combos):
         int_combo = tuple([int(p) for p in combo])
-        human_label = ''.join([str(p.name)[0] for p in combo])
+        human_label = ''.join([abbreviation[p] for p in combo])
         mapping[int_combo] = label
         names.insert(label, human_label)
     return {'mapping': mapping, 'names': names}
@@ -50,7 +60,7 @@ def generate_labeled_matrices(
         scale_bit_max=9,
         sample_count=10000):
     """Return a matrix list and its corresponding label list."""
-    print(f'Generating {sample_count} {process_count}-process matrices: ', end='')
+    print(f'Generating {process_count}-vertex matrices ({sample_count} samples): ', end='')
     sys.stdout.flush()
 
     size = communicator_count + process_count
@@ -97,12 +107,17 @@ def generate_labeled_matrices(
             elif pattern == Pattern.REDUCTION:
                 current.reduce(root=root, scale=scale)
             elif pattern == Pattern.MANY_TO_MANY:
-                current.reduce(root=root, scale=scale)
+                current.many_to_many(scale=scale)
             elif pattern == Pattern.NN2D05:
-                # 2D means something between (2 × n-2) and (n-2 x 2).
-                height = random.choice(factors)
+                dimensions = random_dimensions(process_count, 2)
                 current.nn2d(
-                    dimensions=(height, process_count//height),
+                    dimensions=dimensions,
+                    periodic=False,
+                    scale=scale)
+            elif pattern == Pattern.NN3D07:
+                dimensions = random_dimensions(process_count, 3)
+                current.nn3d(
+                    dimensions=dimensions,
                     periodic=False,
                     scale=scale)
 
@@ -127,8 +142,7 @@ def generate_labeled_matrices(
                     os.path.join(output_directory, f'{file_name}.mtx'),
                     comment=f'{file_name}')
 
-    pacify(sample_count)
-    print(" generated!")
+    print(f'-{sample_count} generated!')
 
     # Save aggregated labels and matrices, compressed.
     if compressed:
@@ -189,24 +203,8 @@ def load_matrices(
 
             matrices[index] = matrix
             labels[index] = label
-
-            if label > 10:
-                print(f'Whoa! Index {index} has label {label} > 10')
     print(" loaded!")
-
-    print("flattening for fun")
-    row_length = size**2
-    matrices_as_rows = np.empty(shape=(sample_count, row_length))
-    for index in range(sample_count):
-        matrix_as_row = np.reshape(matrices[index], row_length)
-        matrices_as_rows[index] = matrix_as_row
-
-    print("labeling for fun")
-    labeled_matrices_as_rows = np.concatenate((matrices_as_rows, labels))
-
-    #print("writing out for fun")
-
-    return labels, matrices
+    return {'labels': labels, 'matrices': matrices, 'names': names}
 
 
 def load_data(
@@ -224,16 +222,16 @@ def load_data(
     sample_count = testing_count + training_count
 
     if compressed:
-        d = np.load('./tmp/matrices_and_labels.npz')
-        labels, matrices, names = d['labels'], d['matrices'], d['names']
+        data = np.load('./tmp/matrices_and_labels.npz')
     else:
-        labels, matrices = load_matrices(
+        data = load_matrices(
             './matrices',
             augmented=augmented,
             communicator_count=communicator_count,
             process_count=process_count,
             sample_count=sample_count)
-        names = hilbert.generate_class_names(process_count=process_count)
+
+    labels, matrices, names = data['labels'], data['matrices'], data['names']
 
     training_labels = labels[:training_count]
     testing_labels = labels[training_count:sample_count]
@@ -246,55 +244,22 @@ def load_data(
             names)
 
 
-def load_bcast_vs_reduce(
-        classify_root=False,
-        classify_scale=False,
-        sample_count=1000,
-        random_root=True,
-        random_scale=False,
-        root=0,
-        scale=512,
-        scale_bit_min=4,
-        scale_bit_max=14,
-        size=64):
-    data = []
-    target = []
-
-    # Generate broadcast matrices with random roots.
-    for i in range(sample_count // 2):
-        if random_root:
-            root = random.choice(range(size))
-        if random_scale:
-            scale = 2**random.choice(range(scale_bit_min, scale_bit_max))
-
-        current = Network(size=size).broadcast(root=root, scale=scale)
-
-        data.append(current.to_coo_matrix())
-        classification = "pattern=broadcast"
-        if classify_root:
-            classification = "{},root={}".format(classification, root)
-        if classify_scale:
-            classification = "{},scale={}".format(classification, scale)
-        target.append(classification)
-
-    # Generate reduction matrices with random roots.
-    for i in range(sample_count // 2):
-        if random_root:
-            root = random.choice(range(size))
-        if random_scale:
-            scale = 2**random.choice(range(scale_bit_min, scale_bit_max))
-        current = Network(size=size).reduce(root=root, scale=scale)
-        data.append(current.to_coo_matrix())
-        classification = "pattern=reduce"
-        if classify_root:
-            classification = "{},root={}".format(classification, root)
-        if classify_scale:
-            classification = "{},scale={}".format(classification, scale)
-        target.append(classification)
-
-    result = {'data': data, 'target': target}
-    return result
-
+def random_dimensions(process_count, cardinality):
+    '''Return a tuple with random dimensions satisfying the process count.'''
+    def f(process_count, cardinality, dimensions):
+        '''Return recursively a random dimension list satisfying the count.'''
+        if cardinality == 0:
+            return dimensions
+        elif cardinality == 1:
+            return dimensions + [process_count]
+        else:
+            max_power = int(math.log(process_count, 2))
+            available_factors = [2**c for c in range(1, max_power + 1 - cardinality )]
+            dimension = random.choice(available_factors)
+            rest = process_count // dimension
+            return f(rest, (cardinality - 1), dimensions + [dimension])
+    # Call helper. 
+    return tuple(f(process_count, cardinality, []))
 
 # Run-as-script idiom.
 
@@ -303,13 +268,14 @@ if __name__ == "__main__":
         augmented=True,
         communicator_count=1,
         compressed=True,
-        individual_matrix_market=False,
         output_directory='./matrices',
         patterns=[
             Pattern.BROADCAST,
-            Pattern.NN2D05,
+            #Pattern.MANY_TO_MANY,
+            #Pattern.NN2D05,
+            Pattern.NN3D07,
             Pattern.REDUCTION],
-        process_count=2**5,
-        sample_count=2**15)
+        process_count=2**9,
+        sample_count=2**10)
 
 # Fin.
