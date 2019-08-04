@@ -44,9 +44,9 @@ communicator_count = 1
 #min_process_count = 9
 #max_process_count = 9
 
-process_counts = [9]
+process_counts = [5]
 
-max_sample_count = 10
+max_sample_count = 15
 
 #process_counts = range(min_process_count, max_process_count + 1) 
 

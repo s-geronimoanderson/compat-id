@@ -23,13 +23,15 @@ class Pattern(IntEnum):
     NN2D05 = 2
     NN3D07 = 3
     REDUCTION = 4
+    SWEEP3D07CORNER = 5
 
 abbreviation = {
     Pattern.BROADCAST: 'b',
     Pattern.MANY_TO_MANY: 'm',
     Pattern.NN2D05: '2',
     Pattern.NN3D07: '3',
-    Pattern.REDUCTION: 'r'}
+    Pattern.REDUCTION: 'r',
+    Pattern.SWEEP3D07CORNER: 's'}
 
 
 # Generator functions.
@@ -55,6 +57,7 @@ def generate_labeled_matrices(
         individual_matrix_market=False,
         output_directory=None,
         patterns=None,
+        pattern_count=None,
         process_count=28,
         scale_bit_min=4,
         scale_bit_max=9,
@@ -81,6 +84,9 @@ def generate_labeled_matrices(
     if patterns is None:
         patterns = [Pattern.BROADCAST, Pattern.REDUCTION]
 
+    if pattern_count is None:
+        pattern_count = len(patterns)
+
     for sample_index in range(sample_count):
         pacify(sample_index)
 
@@ -91,7 +97,7 @@ def generate_labeled_matrices(
 
         # TODO: Use itertools and random to make this simpler.
         chosen_patterns = []
-        for _ in range(len(patterns)):
+        for _ in range(pattern_count):
             chosen_patterns.append(random.choice(patterns))
         chosen_patterns.sort()
 
@@ -110,15 +116,24 @@ def generate_labeled_matrices(
                 current.many_to_many(scale=scale)
             elif pattern == Pattern.NN2D05:
                 dimensions = random_dimensions(process_count, 2)
+                periodicity = random_periodicity(2)
                 current.nn2d(
                     dimensions=dimensions,
-                    periodic=False,
+                    periodicity=periodicity,
                     scale=scale)
             elif pattern == Pattern.NN3D07:
                 dimensions = random_dimensions(process_count, 3)
+                periodicity = random_periodicity(3)
                 current.nn3d(
                     dimensions=dimensions,
-                    periodic=False,
+                    periodicity=periodicity,
+                    scale=scale)
+            elif pattern == Pattern.SWEEP3D07CORNER:
+                corner = random_corner(3)
+                dimensions = random_dimensions(process_count, 3)
+                current.sweep3d(
+                    corner=corner,
+                    dimensions=dimensions,
                     scale=scale)
 
         # Classify.
@@ -244,6 +259,21 @@ def load_data(
             names)
 
 
+def random_corner(cardinality):
+    '''Return a tuple representing a random corner in a space with the given cardinality.'''
+    corner = [random.choice([0, 1]) for _ in range(cardinality)]
+    return tuple(corner)
+
+
+def random_periodicity(cardinality, musketeer_mode=False):
+    '''Return a list representing random periodicity in a space with the given cardinality.'''
+    periodicity = [random.choice([True, False]) for _ in range(cardinality)]
+    if musketeer_mode:
+        # Set all dimensions to the same random value.
+        periodicity = [periodicity[0]] * cardinality
+    return periodicity
+
+
 def random_dimensions(process_count, cardinality):
     '''Return a tuple with random dimensions satisfying the process count.'''
     def f(process_count, cardinality, dimensions):
@@ -261,6 +291,7 @@ def random_dimensions(process_count, cardinality):
     # Call helper. 
     return tuple(f(process_count, cardinality, []))
 
+
 # Run-as-script idiom.
 
 if __name__ == "__main__":
@@ -273,9 +304,11 @@ if __name__ == "__main__":
             Pattern.BROADCAST,
             #Pattern.MANY_TO_MANY,
             #Pattern.NN2D05,
-            Pattern.NN3D07,
-            Pattern.REDUCTION],
+            #Pattern.NN3D07,
+            Pattern.REDUCTION,
+            Pattern.SWEEP3D07CORNER],
+        #pattern_count=4,
         process_count=2**9,
-        sample_count=2**10)
+        sample_count=2**12)
 
 # Fin.

@@ -92,13 +92,13 @@ class Network:
             raise NotImplementedError
         return result
 
-    def nn2d(self, dimensions, periodic, scale):
+    def nn2d(self, dimensions, periodicity, scale):
         """Two-dimensional, five-point nearest-neighbor."""
         if self.augmented:
             from AChax.NN2D05 import NN2D05 as Actor
             params = {'dims': dimensions,
                       'scale': scale,
-                      'periodic': [periodic]*len(dimensions)}
+                      'periodic': periodicity}
 
             actor = Actor()
             network = actor.generate(
@@ -117,14 +117,14 @@ class Network:
         return result
 
 
-    def nn3d(self, dimensions, periodic, scale):
+    def nn3d(self, dimensions, periodicity, scale):
         """Three-dimensional, seven-point nearest-neighbor."""
         # TODO: This is actually identical to nn2d, except for the import.
         if self.augmented:
             from AChax.NN3D07 import NN3D07 as Actor
             params = {'dims': dimensions,
                       'scale': scale,
-                      'periodic': [periodic]*len(dimensions)}
+                      'periodic': periodicity}
 
             actor = Actor()
             network = actor.generate(
@@ -164,6 +164,31 @@ class Network:
                                            payload=scale,
                                            sources=sources)
         return result
+
+    def sweep3d(self, corner, dimensions, scale):
+        """Three-dimensional, corner-based sweep (flood)."""
+        if self.augmented:
+            from AChax.Sweep3D07Corner import Sweep3D07Corner as Actor
+            params = {'corner': corner,
+                      'dims': dimensions,
+                      'scale': scale}
+
+            actor = Actor()
+            network = actor.generate(
+                nprocs=self.process_count,
+                params=params).get_matrix()
+
+            coo = network.tocoo()
+            resized_network = np.zeros((self.size, self.size))
+            for row, col, value in zip(coo.row, coo.col, coo.data):
+                resized_network[row][col] += value.imag
+
+            self.network += resized_network
+            result = self
+        else:
+            raise NotImplementedError
+        return result
+
 
     def load(self, file_name, dense=False):
         """Load from file_name."""
