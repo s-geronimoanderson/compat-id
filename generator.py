@@ -24,6 +24,8 @@ class Pattern(IntEnum):
     NN3D07 = 3
     REDUCTION = 4
     SWEEP3D07CORNER = 5
+    NULL = 9
+
 
 abbreviation = {
     Pattern.BROADCAST: 'b',
@@ -31,15 +33,22 @@ abbreviation = {
     Pattern.NN2D05: '2',
     Pattern.NN3D07: '3',
     Pattern.REDUCTION: 'r',
-    Pattern.SWEEP3D07CORNER: 's'}
+    Pattern.SWEEP3D07CORNER: 's',
+    Pattern.NULL: ''}
 
 
 # Generator functions.
 
-def load_label_mapping(patterns):
-    """Return a mapping for the given patterns."""
-    combos = combinations_with_replacement(sorted(patterns), len(patterns))
-    mapping, names = {}, []
+def load_label_mapping(patterns, cardinality_min=None, cardinality_max=None):
+    """Return a mapping for the given patterns with the given cardinality."""
+    combos, mapping, names = [], {}, []
+    pattern_count = len(patterns)
+    if cardinality_min is None:
+        cardinality_min = pattern_count
+    if cardinality_max is None:
+        cardinality_max = pattern_count
+    for cardinality in range(cardinality_min, 1 + cardinality_max):
+        combos += combinations_with_replacement(sorted(patterns), cardinality)
     for label, combo in enumerate(combos):
         int_combo = tuple([int(p) for p in combo])
         human_label = ''.join([abbreviation[p] for p in combo])
@@ -55,9 +64,11 @@ def generate_labeled_matrices(
         communicator_count=0,
         compressed=False,
         individual_matrix_market=False,
+        musketeer_mode=False,
         output_directory=None,
         patterns=None,
-        pattern_count=None,
+        pattern_count_min=None,
+        pattern_count_max=None,
         process_count=28,
         scale_bit_min=4,
         scale_bit_max=9,
@@ -70,8 +81,6 @@ def generate_labeled_matrices(
     factors = [f for f in range(2, process_count) if process_count % f == 0]
     powers = [p for p in range(2, sample_count) if sample_count % p == 0]
     pacifier = {key: f'-{key}' for key in powers}
-    d = load_label_mapping(patterns)
-    coordinate_to_classification, names = d['mapping'], d['names']
 
     def pacify(x):
         print(pacifier.get(x, ''), end='')
@@ -84,8 +93,17 @@ def generate_labeled_matrices(
     if patterns is None:
         patterns = [Pattern.BROADCAST, Pattern.REDUCTION]
 
-    if pattern_count is None:
-        pattern_count = len(patterns)
+    if pattern_count_max is None:
+        pattern_count_max = len(patterns)
+    if pattern_count_min is None:
+        pattern_count_min = pattern_count_max
+    pattern_counts = range(pattern_count_min, 1 + pattern_count_max)
+
+    d = load_label_mapping(
+        patterns,
+        cardinality_min=pattern_count_min,
+        cardinality_max=pattern_count_max)
+    coordinate_to_classification, names = d['mapping'], d['names']
 
     for sample_index in range(sample_count):
         pacify(sample_index)
@@ -97,7 +115,7 @@ def generate_labeled_matrices(
 
         # TODO: Use itertools and random to make this simpler.
         chosen_patterns = []
-        for _ in range(pattern_count):
+        for _ in range(random.choice(pattern_counts)):
             chosen_patterns.append(random.choice(patterns))
         chosen_patterns.sort()
 
@@ -116,14 +134,14 @@ def generate_labeled_matrices(
                 current.many_to_many(scale=scale)
             elif pattern == Pattern.NN2D05:
                 dimensions = random_dimensions(process_count, 2)
-                periodicity = random_periodicity(2)
+                periodicity = random_periodicity(2, musketeer_mode=musketeer_mode)
                 current.nn2d(
                     dimensions=dimensions,
                     periodicity=periodicity,
                     scale=scale)
             elif pattern == Pattern.NN3D07:
                 dimensions = random_dimensions(process_count, 3)
-                periodicity = random_periodicity(3)
+                periodicity = random_periodicity(3, musketeer_mode=musketeer_mode)
                 current.nn3d(
                     dimensions=dimensions,
                     periodicity=periodicity,
@@ -271,6 +289,7 @@ def random_periodicity(cardinality, musketeer_mode=False):
     if musketeer_mode:
         # Set all dimensions to the same random value.
         periodicity = [periodicity[0]] * cardinality
+    #print(f'Chose periodicity {periodicity}')
     return periodicity
 
 
@@ -299,16 +318,18 @@ if __name__ == "__main__":
         augmented=True,
         communicator_count=1,
         compressed=True,
+        musketeer_mode=True,
         output_directory='./matrices',
         patterns=[
             Pattern.BROADCAST,
-            #Pattern.MANY_TO_MANY,
-            #Pattern.NN2D05,
-            #Pattern.NN3D07,
+            Pattern.MANY_TO_MANY,
+            Pattern.NN2D05,
+            Pattern.NN3D07,
             Pattern.REDUCTION,
             Pattern.SWEEP3D07CORNER],
-        #pattern_count=4,
-        process_count=2**9,
-        sample_count=2**12)
+        #pattern_count_min=6,
+        #pattern_count_max=7,
+        process_count=2**6,
+        sample_count=2**16)
 
 # Fin.
