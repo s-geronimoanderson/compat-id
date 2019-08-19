@@ -87,6 +87,6 @@ This project uses the Apache License 2.0 - see the [LICENSE](LICENSE) file for d
 
 ## Acknowledgments
 
-- AChax by Philip C. Roth
+- [AChax](https://dyninst.github.io/scalable_tools_workshop/petascale2018/assets/slides/Roth-ScalableTools-20180709-small.pdf) by Philip C. Roth
 - [TensorFlow tutorial](https://www.tensorflow.org/tutorials/keras/basic_classification) by Google
 - [A template to make a good README.md](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2) by [PurpleBooth](https://github.com/PurpleBooth)
