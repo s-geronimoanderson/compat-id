@@ -39,14 +39,40 @@ augmented = True
 compressed = True
 #compressed = False
 
+# Extended feature?
+extended = True
+#extended = False
+
 communicator_count = 1
 
 #min_process_count = 9
 #max_process_count = 9
 
-process_counts = [6]
+#sample_file_name = './samples/br-t5-s16.npz'
+#sample_file_name = './samples/br-t5-s16-variable.npz'
 
-max_sample_count = 16
+#sample_file_name = './samples/br2-t5-s15-variable.npz'
+#sample_file_name = './samples/br2-t5-s15.npz'
+
+#sample_file_name = './samples/br23-t5-s15.npz'
+sample_file_name = './samples/br23-t5-s15-variable.npz'
+
+#sample_file_name = './samples/bmr23-t5-s15.npz'
+#sample_file_name = './samples/bmr23-t5-s15-variable.npz'
+
+#sample_file_name = './samples/bmrs23-t5-s16.npz'
+#sample_file_name = './samples/bmrs23-t6-s14.npz'
+#sample_file_name = './samples/bmrs23-t6-s14-variable.npz'
+
+#sample_file_name = './samples/bmr-t5-s14.npz'
+
+
+process_counts = [5]
+#process_counts = [6]
+
+max_sample_count = 5
+#max_sample_count = 14
+#max_sample_count = 15
 
 #process_counts = range(min_process_count, max_process_count + 1) 
 
@@ -104,7 +130,7 @@ def run_tutorial(process_count=256, sample_count=512):
             # Just to match earlier tests.
             scale_bit_min = 4
             scale_bit_max = 14
-    
+
             # This is the default scikit-learn proportion.
             testing_count = sample_count // 4
             training_count = testing_count * 3
@@ -115,7 +141,9 @@ def run_tutorial(process_count=256, sample_count=512):
             (train_images, train_labels), (test_images, test_labels), class_names = load_data(
                 communicator_count=communicator_count,
                 compressed=compressed,
+                extended=extended,
                 process_count=process_count,
+                input_file_name=sample_file_name,
                 scale_bit_min=scale_bit_min,
                 scale_bit_max=scale_bit_max,
                 testing_count=testing_count,
@@ -139,7 +167,11 @@ def run_tutorial(process_count=256, sample_count=512):
         
             # Effective image dimension.
             n = communicator_count + process_count
-    
+
+            # Extended feature.
+            if extended:
+                n += n
+ 
         elif datum_set is DatumSet.FASHION_ACG:
             # The ORNL datum set.
             import mongos
@@ -270,7 +302,7 @@ def run_tutorial(process_count=256, sample_count=512):
             plot_value_array(i, predictions,  test_labels)
             plt.show()
             
-            i = 12
+            i = 7 # originally 12
             plt.figure(figsize=(6,3))
             plt.subplot(1,2,1)
             plot_image(i, predictions, test_labels, test_images)

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import numpy as np
+import random
+
 from scipy.sparse import coo_matrix
 from scipy.sparse import lil_matrix
 
@@ -48,7 +50,17 @@ class Network:
             matrix = self.network
         return matrix
 
-    def broadcast(self, root, scale):
+    def randomize_volume(self, matrix=None):
+        '''Randomize the volume in the given matrix or in our network.'''
+        if matrix is None:
+            matrix = self.network
+        for index, value in np.ndenumerate(matrix):
+            scaled_imag = int(value.imag * random.random())
+            matrix[index] = complex(value.real, scaled_imag)
+        return matrix
+
+
+    def broadcast(self, root, scale, variable_scale=False):
         """Broadcast from the given root to all other processes."""
         if self.augmented:
             from AChax.Broadcast import Broadcast as Actor
@@ -58,8 +70,11 @@ class Network:
             actor = Actor()
             network = actor.generate(
                 nprocs=self.process_count,
-                params=params).get_matrix()
-            self.network += np.imag(network)
+                params=params).get_matrix().toarray()
+            if variable_scale:
+                self.network += self.randomize_volume(network)
+            else:
+                self.network += network
             result = self
         else:
             sources = [root]
@@ -69,7 +84,7 @@ class Network:
                                            sources=sources)
         return result
 
-    def many_to_many(self, scale):
+    def many_to_many(self, scale, variable_scale=False):
         """A general many-to-many pattern."""
         if self.augmented:
             from AChax.ManyToMany import ManyToMany as Actor
@@ -82,17 +97,20 @@ class Network:
                 params=params).get_matrix()
 
             coo = network.tocoo()
-            resized_network = np.zeros((self.size, self.size))
+            resized_network = np.zeros(shape=(self.size, self.size), dtype=np.complex128)
             for row, col, value in zip(coo.row, coo.col, coo.data):
-                resized_network[row][col] += value.imag
+                resized_network[row][col] += value
 
-            self.network += resized_network
+            if variable_scale:
+                self.network += self.randomize_volume(resized_network)
+            else:
+                self.network += resized_network
             result = self
         else:
             raise NotImplementedError
         return result
 
-    def nn2d(self, dimensions, periodicity, scale):
+    def nn2d(self, dimensions, periodicity, scale, variable_scale=False):
         """Two-dimensional, five-point nearest-neighbor."""
         if self.augmented:
             from AChax.NN2D05 import NN2D05 as Actor
@@ -106,18 +124,21 @@ class Network:
                 params=params).get_matrix()
 
             coo = network.tocoo()
-            resized_network = np.zeros((self.size, self.size))
+            resized_network = np.zeros(shape=(self.size, self.size), dtype=np.complex128)
             for row, col, value in zip(coo.row, coo.col, coo.data):
-                resized_network[row][col] += value.imag
+                resized_network[row][col] += value
 
-            self.network += resized_network
+            if variable_scale:
+                self.network += self.randomize_volume(resized_network)
+            else:
+                self.network += resized_network
             result = self
         else:
             raise NotImplementedError
         return result
 
 
-    def nn3d(self, dimensions, periodicity, scale):
+    def nn3d(self, dimensions, periodicity, scale, variable_scale=False):
         """Three-dimensional, seven-point nearest-neighbor."""
         # TODO: This is actually identical to nn2d, except for the import.
         if self.augmented:
@@ -132,18 +153,21 @@ class Network:
                 params=params).get_matrix()
 
             coo = network.tocoo()
-            resized_network = np.zeros((self.size, self.size))
+            resized_network = np.zeros(shape=(self.size, self.size), dtype=np.complex128)
             for row, col, value in zip(coo.row, coo.col, coo.data):
-                resized_network[row][col] += value.imag
+                resized_network[row][col] += value
 
-            self.network += resized_network
+            if variable_scale:
+                self.network += self.randomize_volume(resized_network)
+            else:
+                self.network += resized_network
             result = self
         else:
             raise NotImplementedError
         return result
 
 
-    def reduce(self, root, scale):
+    def reduce(self, root, scale, variable_scale=False):
         """Send from all processes (except the root) to the root."""
         if self.augmented:
             from AChax.Reduce import Reduce as Actor
@@ -153,9 +177,12 @@ class Network:
             actor = Actor()
             network = actor.generate(
                 nprocs=self.process_count,
-                params=params).get_matrix()
+                params=params).get_matrix().toarray()
 
-            self.network += np.imag(network)
+            if variable_scale:
+                self.network += self.randomize_volume(network)
+            else:
+                self.network += network
             result = self
         else:
             sources = [d for d in range(self.size) if d != root]
@@ -165,7 +192,7 @@ class Network:
                                            sources=sources)
         return result
 
-    def sweep3d(self, corner, dimensions, scale):
+    def sweep3d(self, corner, dimensions, scale, variable_scale=False):
         """Three-dimensional, corner-based sweep (flood)."""
         if self.augmented:
             from AChax.Sweep3D07Corner import Sweep3D07Corner as Actor
@@ -179,11 +206,14 @@ class Network:
                 params=params).get_matrix()
 
             coo = network.tocoo()
-            resized_network = np.zeros((self.size, self.size))
+            resized_network = np.zeros(shape=(self.size, self.size), dtype=np.complex128)
             for row, col, value in zip(coo.row, coo.col, coo.data):
-                resized_network[row][col] += value.imag
+                resized_network[row][col] += value
 
-            self.network += resized_network
+            if variable_scale:
+                self.network += self.randomize_volume(resized_network)
+            else:
+                self.network += resized_network
             result = self
         else:
             raise NotImplementedError
