@@ -4,7 +4,9 @@ A machine learning-based communication pattern identifier for distributed system
 
 ## Getting Started
 
-These instructions will help you get you a copy of the project up and running on your local machine for development and testing purposes. Note: Currently not intended for using on production systems.
+These instructions will help you get you a copy of the project up and running on your local machine for development and testing purposes.
+
+*Note: Currently not intended for deploying on production systems.*
 
 ### Prerequisites
 
@@ -58,7 +60,7 @@ until finished
 
 ## Deployment
 
-(TODO: Add additional notes about how to deploy this on a live system)
+Currently not intended for deploying on production systems.
 
 ## Built With
 
@@ -69,7 +71,7 @@ until finished
 
 ## Contributing
 
-Please contact [Isaac](mailto:s-geronimoanderson@users.noreply.github.com) if you are interested in contributing. (An official [CONTRIBUTING.md](CONTRIBUTING.md) file is forthcoming).
+Please contact [Isaac](mailto:s-geronimoanderson@users.noreply.github.com) if you are interested in contributing. (An official [CONTRIBUTING.md](CONTRIBUTING.md) file is forthcoming.)
 
 ## Version Naming
 
