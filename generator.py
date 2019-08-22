@@ -330,7 +330,9 @@ def load_data(
             # TODO: Try taking the dct before scaling the matrices.
 
             # Currently count submatrix 2D DCT-II.
-            if True: # Scaled magnitude-only to [0, 1].
+            if False: # Non-normalized DCT (for report).
+                southwest_matrix = dct(dct(northwest_matrix, axis=0), axis=1)
+            if True: # BEST: Scaled magnitude-only to [0, 1].
                 southwest_matrix = np.abs(dct(dct(northwest_matrix, axis=0), axis=1))
                 southwest_matrix_max = np.amax(southwest_matrix)
                 if southwest_matrix_max != 0:
@@ -353,7 +355,9 @@ def load_data(
                     southwest_matrix /= southwest_matrix_range
 
             # Currently scale submatrix 2D DCT-II.
-            if True: # Scaled magnitude-only to [0, 1].
+            if False: # Non-normalized DCT (for report).
+                southeast_matrix = dct(dct(northeast_matrix, axis=0), axis=1)
+            if True: # BEST: Scaled magnitude-only to [0, 1].
                 southeast_matrix = np.abs(dct(dct(northeast_matrix, axis=0), axis=1))
                 southeast_matrix_max = np.amax(southeast_matrix)
                 if southeast_matrix_max != 0:
@@ -382,10 +386,10 @@ def load_data(
             #southeast_matrix /= np.amax(southeast_matrix)
 
             # Add extended features to sample.
-            sample[:size, :size] += northwest_matrix
-            sample[:size, size:] += northeast_matrix
-            sample[size:, :size] += southwest_matrix
-            sample[size:, size:] += southeast_matrix
+            #sample[:size, :size] += northwest_matrix # count
+            sample[:size, size:] += northeast_matrix # volume
+            #sample[size:, :size] += southwest_matrix # count DCT
+            sample[size:, size:] += southeast_matrix # volume DCT
     
             samples[sample_index] = sample
             pacify(sample_index, pacifier)
@@ -444,19 +448,19 @@ if __name__ == "__main__":
         communicator_count=1,
         compressed=True,
         musketeer_mode=True,
-        output_file_name='./tmp/bmr-t5-s14.npz',
+        output_file_name='./tmp/bmrs23-t6-s16.npz',
         #output_file_name='./tmp/bmrs23-t6-s14-variable.npz',
         patterns=[
             Pattern.BROADCAST,
             Pattern.MANY_TO_MANY,
-            #Pattern.NN2D05,
-            #Pattern.NN3D07,
-            Pattern.REDUCTION],
-            #Pattern.SWEEP3D07CORNER],
+            Pattern.NN2D05,
+            Pattern.NN3D07,
+            Pattern.REDUCTION,
+            Pattern.SWEEP3D07CORNER],
         #pattern_count_min=2,
         #pattern_count_max=2,
-        process_count=2**5,
-        sample_count=2**14,
+        process_count=2**6,
+        sample_count=2**16,
         variable_scale=False)
         #variable_scale=True)
 

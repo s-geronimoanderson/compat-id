@@ -51,16 +51,16 @@ communicator_count = 1
 #sample_file_name = './samples/br-t5-s16.npz'
 #sample_file_name = './samples/br-t5-s16-variable.npz'
 
-#sample_file_name = './samples/br2-t5-s15-variable.npz'
 #sample_file_name = './samples/br2-t5-s15.npz'
+#sample_file_name = './samples/br2-t5-s15-variable.npz'
 
 #sample_file_name = './samples/br23-t5-s15.npz'
-sample_file_name = './samples/br23-t5-s15-variable.npz'
+#sample_file_name = './samples/br23-t5-s15-variable.npz'
 
 #sample_file_name = './samples/bmr23-t5-s15.npz'
 #sample_file_name = './samples/bmr23-t5-s15-variable.npz'
 
-#sample_file_name = './samples/bmrs23-t5-s16.npz'
+sample_file_name = './samples/bmrs23-t5-s16.npz'
 #sample_file_name = './samples/bmrs23-t6-s14.npz'
 #sample_file_name = './samples/bmrs23-t6-s14-variable.npz'
 
@@ -70,9 +70,9 @@ sample_file_name = './samples/br23-t5-s15-variable.npz'
 process_counts = [5]
 #process_counts = [6]
 
-max_sample_count = 5
-#max_sample_count = 14
+#max_sample_count = 5
 #max_sample_count = 15
+max_sample_count = 16
 
 #process_counts = range(min_process_count, max_process_count + 1) 
 
