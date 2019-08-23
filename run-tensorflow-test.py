@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Author: S. Isaac Geronimo Anderson, 2019
+
 # Following guide here:
 # https://www.tensorflow.org/tutorials/keras/basic_classification
 
@@ -10,73 +12,58 @@ import tensorflow as tf
 from tensorflow import keras
 
 # Helper libraries.
+import configparser
 import numpy as np
 import matplotlib.pyplot as plt
 
 # Choose the datum set.
 from enum import IntEnum
 class DatumSet(IntEnum):
-    FASHION_MNIST = 0
-    FASHION_ACG = 1
-    COMPAT_MTRX = 2
+    FASHION_MNIST = 0 # Similar to the TensorFlow MNIST tutorial.
+    FASHION_ACG = 1 # An intermediary step between the above and below.
+    COMPAT_MTRX = 2 # The only useful one currently.
 
-#datum_set = DatumSet.FASHION_MNIST
 datum_set = DatumSet.COMPAT_MTRX
+
 
 # Choose the mode.
 class Mode(IntEnum):
-    DEMO = 0
-    TEST = 1
+    DEMO = 0 # Currently the only useful mode.
+    TEST = 1 # Meant to run tests while the above displayed plots and such.
 
 mode = Mode.DEMO
-#mode = Mode.TEST
+
+# Configuration.
+config = configparser.ConfigParser()
+config.read('config.ini')
+default = config['DEFAULT']
+
 
 # Augmented?
-augmented = True
-#augmented = False
+augmented = default.getboolean('augmented')
 
 # Compressed?
 compressed = True
-#compressed = False
 
-# Extended feature?
+# Extended feature? (Double size matrices.)
 extended = True
-#extended = False
 
+# Sample file name.
+sample_file_name = './samples/bmrs23-t5-s16.npz'
+
+# Process and communicator count.
+process_count = 5
 communicator_count = 1
 
-#min_process_count = 9
-#max_process_count = 9
-
-#sample_file_name = './samples/br-t5-s16.npz'
-#sample_file_name = './samples/br-t5-s16-variable.npz'
-
-#sample_file_name = './samples/br2-t5-s15.npz'
-#sample_file_name = './samples/br2-t5-s15-variable.npz'
-
-#sample_file_name = './samples/br23-t5-s15.npz'
-#sample_file_name = './samples/br23-t5-s15-variable.npz'
-
-#sample_file_name = './samples/bmr23-t5-s15.npz'
-#sample_file_name = './samples/bmr23-t5-s15-variable.npz'
-
-sample_file_name = './samples/bmrs23-t5-s16.npz'
-#sample_file_name = './samples/bmrs23-t6-s14.npz'
-#sample_file_name = './samples/bmrs23-t6-s14-variable.npz'
-
-#sample_file_name = './samples/bmr-t5-s14.npz'
-
-
-process_counts = [5]
-#process_counts = [6]
-
-#max_sample_count = 5
-#max_sample_count = 15
-max_sample_count = 16
-
-#process_counts = range(min_process_count, max_process_count + 1) 
+# Note: Multiple process count testing currently not supported.
+min_process_count = process_count
+max_process_count = process_count
 
 min_sample_count = 5
+max_sample_count = 5
+
+
+process_counts = range(min_process_count, max_process_count + 1) 
 sample_counts = range(min_sample_count, max_sample_count + 1) 
 
 
@@ -276,7 +263,7 @@ def run_tutorial(process_count=256, sample_count=512):
                     100*np.max(predictions_array),
                     class_names[true_label]),
                     color=color)
-            
+ 
             def plot_value_array(i, predictions_array, true_label):
               predictions_array, true_label = predictions_array[i], true_label[i]
               plt.grid(False)
@@ -314,7 +301,7 @@ def run_tutorial(process_count=256, sample_count=512):
             # Color correct predictions in blue, incorrect predictions in red
             num_rows = 5
             num_cols = 3
-            num_images = num_rows*num_cols
+            num_images = 7 #num_rows*num_cols
             plt.figure(figsize=(2*2*num_cols, 2*num_rows))
             for i in range(num_images):
                 plt.subplot(num_rows, 2*num_cols, 2*i+1)
@@ -342,9 +329,6 @@ def run_tutorial(process_count=256, sample_count=512):
         # Grab predictions:
         prediction_result = np.argmax(predictions_single[0])
         print(prediction_result)
-    
-        # Just investigating.
-        print(test_images[0])
 
 if __name__ == "__main__":
     go()
